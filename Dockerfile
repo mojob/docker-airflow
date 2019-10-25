@@ -18,6 +18,26 @@ ARG AIRFLOW_DEPS=""
 ARG PYTHON_DEPS=""
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
+RUN apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent
+
+#RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+
+#RUN add-apt-repository \
+#   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+#   $(lsb_release -cs) \
+#   stable"
+
+# RUN apt-get update
+
+RUN apt-get install docker-ce docker-ce-cli containerd.io
+
+ARG KOPS_VERSION=1.11.0
+ARG KUBECTL_VERSION=1.11.7
+
 # Define en_US.
 ENV LANGUAGE en_US.UTF-8
 ENV LANG en_US.UTF-8
@@ -25,8 +45,43 @@ ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 ENV LC_MESSAGES en_US.UTF-8
 
-# Disable noisy "Handling signal" log messages:
-# ENV GUNICORN_CMD_ARGS --log-level WARNING
+# Install AWS CLI
+#
+RUN apt-get update                                          \
+  && apt-get -y --allow-downgrades --allow-remove-essential --allow-change-held-packages install                         \
+    python-pip                                              \
+  && pip install awscli==${AWSCLI_VERSION}                  \
+  && apt-get clean                                          \
+  && apt-get autoclean                                      \
+  && apt-get autoremove                                     \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install boto
+#
+RUN apt-get update                                          \
+  && pip install boto                                       \
+  && apt-get -y --allow-downgrades --allow-remove-essential --allow-change-held-packages install --no-install-recommends \
+    software-properties-common                              \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install tree lister
+RUN apt-get update                                          \
+  && apt-get -y --allow-downgrades --allow-remove-essential --allow-change-held-packages install                         \
+    tree                                                    \
+  && apt-get clean                                          \
+  && apt-get autoclean                                      \
+  && apt-get autoremove                                     \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install kubectl
+#
+ADD https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl /usr/local/bin/kubectl
+RUN chmod +x /usr/local/bin/kubectl
+
+# Install Kops
+#
+ADD https://github.com/kubernetes/kops/releases/download/${KOPS_VERSION}/kops-linux-amd64 /usr/local/bin/kops
+RUN chmod +x /usr/local/bin/kops
 
 RUN set -ex \
     && buildDeps=' \
@@ -127,6 +182,8 @@ RUN ln -s \
   /usr/local/lib/python3.7/site-packages/cv2.so
 
 RUN pip install dlib
+
+COPY s2i /usr/local/bin/
 
 COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
