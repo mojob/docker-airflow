@@ -19,18 +19,24 @@ ARG PYTHON_DEPS=""
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
 RUN apt-get install \
+    gettext-base \
     apt-transport-https \
     ca-certificates \
     curl \
-    gnupg-agent
+    gnupg-agent \
+    software-properties-common
 
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
 RUN add-apt-repository \
    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
    $(lsb_release -cs) \
    stable"
-RUN apt-get update
-RUN apt-get install docker-ce docker-ce-cli containerd.io
+RUN apt-get update \
+  && apt-get -y install docker-ce \
+  docker-ce-cli \
+  containerd.io \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 ARG KOPS_VERSION=1.11.0
 ARG KUBECTL_VERSION=1.11.7
@@ -189,7 +195,9 @@ RUN chown -R airflow: ${AIRFLOW_USER_HOME}
 
 EXPOSE 8080 5555 8793
 
-USER airflow
+USER root
+RUN groupadd --gid 999 docker \
+    && usermod -aG docker airflow
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["webserver"]
