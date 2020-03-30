@@ -18,19 +18,21 @@ ARG AIRFLOW_DEPS=""
 ARG PYTHON_DEPS=""
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
-RUN apt-get install \
-    gettext-base \
+# Envsubst & Docker
+RUN \
+  apt-get update \
+  && apt-get -y install gettext-base \
     apt-transport-https \
     ca-certificates \
     curl \
     gnupg-agent \
-    software-properties-common
+    software-properties-common \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
-RUN add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-   $(lsb_release -cs) \
-   stable"
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+
 RUN apt-get update \
   && apt-get -y install docker-ce \
   docker-ce-cli \
@@ -40,6 +42,7 @@ RUN apt-get update \
 
 ARG KOPS_VERSION=1.11.0
 ARG KUBECTL_VERSION=1.11.7
+ARG AWSCLI_VERSION=1.16.67
 
 # Define en_US.
 ENV LANGUAGE en_US.UTF-8
