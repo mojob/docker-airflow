@@ -200,6 +200,7 @@ EXPOSE 8080 5555 8793
 
 USER root
 RUN usermod -aG docker airflow
+USER airflow
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["webserver"]
